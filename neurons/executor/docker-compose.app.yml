@@ -2,6 +2,25 @@ services:
   executor:
     image: daturaai/compute-subnet-executor:latest
     env_file: ./.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    runtime: nvidia
+    command: >
+      bash -c "
+        apt-get update -y &&
+        apt-get install -y nvidia-container-toolkit &&
+        mkdir -p /etc/nvidia-container-runtime &&
+        echo 'no-cgroups = false' > /etc/nvidia-container-runtime/config.toml &&
+        bash run.sh
+      "
     ports:
       - ${EXTERNAL_PORT}:${INTERNAL_PORT}
       - ${SSH_PORT}:22
@@ -12,10 +31,3 @@ services:
       - /etc/docker/daemon.json:/etc/docker/daemon.json
       - /etc/nvidia-container-runtime/config.toml:/etc/nvidia-container-runtime/config.toml
     pid: host
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
